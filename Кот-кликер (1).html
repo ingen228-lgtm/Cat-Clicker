@@ -1,0 +1,1384 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Кот-кликер</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+  /* Layout: счётчик и кот слева, магазин улучшений справа, ниже кейсы и коллекция скинов.
+     Холодный серо-синий фон, оранжевый акцент только на кнопках; цвет редкости только на рамках плиток. */
+  :root {
+    --bg: #e9eef6;
+    --surface: #f7f9fd;
+    --rug: #dbe3f1;
+    --ink: #1b2233;
+    --muted: #556079;
+    --line: #c7d0e1;
+    --accent: #f08a3c;
+    --accent-ink: #1f1308;
+    --r0: #8b94a8;
+    --r1: #2fae63;
+    --r2: #3b82f6;
+    --r3: #a855f7;
+    --r4: #f2b01e;
+    --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+    --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12172a;
+      --surface: #1b2138;
+      --rug: #222a47;
+      --ink: #edeff7;
+      --muted: #9aa3bd;
+      --line: #2c3552;
+      --accent: #f59a52;
+      --accent-ink: #1f1308;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12172a;
+    --surface: #1b2138;
+    --rug: #222a47;
+    --ink: #edeff7;
+    --muted: #9aa3bd;
+    --line: #2c3552;
+    --accent: #f59a52;
+    --accent-ink: #1f1308;
+    color-scheme: dark;
+  }
+
+  html, body { height: auto; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.45;
+    padding-block: 20px 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app { max-width: 62rem; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.5rem, 4vw, 2rem); margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+  h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; margin: 0; }
+  h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; margin: 0; }
+
+  .badge { font-family: var(--font-body); font-weight: 800; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 3px 8px; vertical-align: middle; }
+  .ghost {
+    font: inherit; font-weight: 700; font-size: 0.9rem; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; min-height: 40px; cursor: pointer;
+  }
+  .ghost:hover { border-color: var(--muted); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  @media (min-width: 780px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; } }
+
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0; }
+  .score { display: flex; align-items: center; gap: 12px; font-family: var(--font-display); font-weight: 700; font-size: clamp(2.6rem, 9vw, 4.6rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .score svg { width: 0.8em; height: 0.8em; color: var(--accent); flex: none; }
+  .score-label { margin: 0; color: var(--muted); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 0.9rem; color: var(--muted); font-weight: 700; }
+  .chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .cat-wrap {
+    width: min(100%, 22rem); aspect-ratio: 1 / 1; max-width: 100%;
+    display: grid; place-items: center; margin-top: 8px;
+    background: radial-gradient(circle closest-side, var(--rug) 0 92%, transparent 93%);
+  }
+  .cat {
+    all: unset; box-sizing: border-box; cursor: pointer; width: 86%; display: block;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none; border-radius: 40%;
+  }
+  .cat:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .cat svg { width: 100%; height: auto; display: block; overflow: visible; pointer-events: none; }
+  .eyes-happy, .mouth-open { display: none; }
+  .cat.meowing .eyes-open, .cat.meowing .mouth-closed { display: none; }
+  .cat.meowing .eyes-happy, .cat.meowing .mouth-open { display: inline; }
+  .hint { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; max-width: 30ch; text-wrap: balance; }
+
+  .shop, .vault { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .item { display: flex; flex-direction: column; gap: 10px; padding-block: 14px; border-top: 1px solid var(--line); }
+  .item:first-child { border-top: 0; padding-top: 4px; }
+  .item-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
+  .icon { width: 44px; height: 44px; border-radius: 12px; background: var(--rug); display: grid; place-items: center; color: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+  .icon svg { width: 22px; height: 22px; }
+  .item-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+  .lvl { font-family: var(--font-body); font-weight: 800; font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .desc { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; }
+  .now { margin: 2px 0 0; font-size: 0.92rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .buy {
+    font: inherit; font-weight: 800; min-height: 46px; border-radius: 12px; cursor: pointer;
+    border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 14px;
+    font-variant-numeric: tabular-nums; transition: transform 0.08s ease;
+  }
+  .buy svg { width: 18px; height: 18px; flex: none; }
+  .buy:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+  .buy:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .buy:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+
+  .reset-row { display: flex; justify-content: flex-end; }
+  .reset { font: inherit; font-size: 0.85rem; font-weight: 700; color: var(--muted); background: none; border: 0; padding: 8px 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 40px; }
+  .reset.armed { color: var(--ink); }
+
+  /* Кейсы и коллекция */
+  .vault-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .progress-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .bar { flex: 1 1 14rem; min-width: 0; height: 12px; border-radius: 999px; background: var(--rug); overflow: hidden; }
+  .fill { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width 0.12s linear; }
+  .bar-text { font-weight: 700; color: var(--muted); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+  .bar-text b { color: var(--ink); }
+
+  .roulette { position: relative; overflow: hidden; border-radius: 14px; background: var(--rug); border: 1px solid var(--line); padding-block: 10px; }
+  .strip { display: flex; gap: 8px; position: relative; width: max-content; padding-left: 8px; will-change: transform; }
+  .marker { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; transform: translateX(-50%); background: var(--accent); pointer-events: none; }
+
+  .tile {
+    flex: 0 0 108px; width: 108px; box-sizing: border-box; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: var(--surface); border: 1px solid var(--line); border-bottom: 5px solid var(--rc, var(--r0));
+    border-radius: 12px; padding: 6px 6px 8px; text-align: center; color: var(--ink);
+    font: inherit; font-size: 0.76rem; font-weight: 800; line-height: 1.2;
+  }
+  .tile.win { box-shadow: 0 0 0 3px var(--accent); }
+  .tile .thumb { width: 100%; }
+  .tile .thumb svg { width: 100%; height: auto; display: block; }
+  .tile .tmeta { font-weight: 700; color: var(--muted); font-size: 0.72rem; }
+  .r-0 { --rc: var(--r0); }
+  .r-1 { --rc: var(--r1); }
+  .r-2 { --rc: var(--r2); }
+  .r-3 { --rc: var(--r3); }
+  .r-4 { --rc: var(--r4); }
+
+  .open-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .open-row .buy { min-width: 12rem; }
+  .result { margin: 0; flex: 1 1 14rem; min-width: 0; font-weight: 700; }
+  .odds { margin: 0; color: var(--muted); font-size: 0.88rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.2rem, 1fr)); gap: 10px; }
+  .gtile { width: auto; flex: none; cursor: pointer; background: var(--bg); }
+  .gtile:hover:not(:disabled) { border-color: var(--muted); border-bottom-color: var(--rc); }
+  .gtile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .gtile.on { box-shadow: 0 0 0 3px var(--accent); }
+  .gtile.locked { cursor: default; }
+  .gtile.locked .thumb svg { filter: brightness(0); opacity: 0.16; }
+
+  /* Мини-игра: 3D-город */
+  .mg { position: fixed; inset: 0; z-index: 40; background: #a9defa; }
+  .mg canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: pointer; }
+  .mg-hud {
+    position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+    padding-block: calc(12px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .mg-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mg-pill { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mg-top .ghost { margin-left: auto; pointer-events: auto; }
+  .mg-help { align-self: flex-start; max-width: 36rem; margin: 0; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-size: 0.9rem; font-weight: 700; }
+  .mg-win { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(18, 23, 42, 0.45); }
+  .mg-card { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 18px; padding: 22px; max-width: 24rem; width: 100%; display: flex; flex-direction: column; gap: 12px; text-align: center; pointer-events: auto; }
+  .mg-card p { margin: 0; color: var(--muted); font-weight: 700; }
+  .mg-card .open-row { justify-content: center; }
+
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 30;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    background: var(--ink); color: var(--bg); font-weight: 800; border-radius: 999px;
+    padding: 10px 18px; max-width: calc(100vw - 32px); text-align: center;
+  }
+
+  .floats { position: fixed; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
+  .float { position: absolute; font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; color: var(--ink); white-space: nowrap; text-shadow: 0 1px 0 var(--bg), 0 0 8px var(--bg); transform: translate(-50%, -50%); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="paw" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="16" rx="6" ry="5" fill="currentColor"/>
+    <ellipse cx="4.6" cy="10.4" rx="2.3" ry="3" fill="currentColor"/>
+    <ellipse cx="9.2" cy="5.6" rx="2.3" ry="3.1" fill="currentColor"/>
+    <ellipse cx="14.8" cy="5.6" rx="2.3" ry="3.1" fill="currentColor"/>
+    <ellipse cx="19.4" cy="10.4" rx="2.3" ry="3" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<main class="app">
+  <header class="top">
+    <h1>Кот-кликер <span class="badge">хардкор</span></h1>
+    <button class="ghost" id="sound" type="button" aria-pressed="true">Звук: вкл</button>
+  </header>
+
+  <div class="layout">
+    <section class="stage" aria-label="Игровое поле">
+      <div class="score"><svg><use href="#paw"/></svg><span id="paws">0</span></div>
+      <p class="score-label">лапок</p>
+      <div class="chips">
+        <span class="chip">За тап: <b id="per">1</b></span>
+        <span class="chip">Автотап: <b id="rate">выключен</b></span>
+        <span class="chip">Кот роняет: <b id="decay">0 в сек.</b></span>
+        <span class="chip">Рекорд: <b id="best">0</b></span>
+      </div>
+
+      <div class="cat-wrap">
+        <button class="cat" id="cat" type="button" aria-label="Тапнуть по коту"></button>
+      </div>
+      <p class="hint">Тапай быстро: кот роняет 0,3% лапок каждую секунду, копить долго не выйдет.</p>
+    </section>
+
+    <section class="shop" aria-label="Улучшения">
+      <h2>Улучшения</h2>
+      <ul class="list">
+        <li class="item">
+          <div class="item-head">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 3 L5 19 L9.4 15 L12.4 21 L15 19.8 L12 14 L18 14 Z" fill="currentColor"/></svg>
+            </div>
+            <div>
+              <div class="item-title">Автокликер <span class="lvl" id="autoLvl">не куплен</span></div>
+              <p class="desc">Кот сам тапает по себе раз в секунду.</p>
+            </div>
+          </div>
+          <button class="buy" id="buyAuto" type="button"><svg><use href="#paw"/></svg><span id="autoCost">5 000</span></button>
+        </li>
+        <li class="item">
+          <div class="item-head">
+            <div class="icon" aria-hidden="true">×2</div>
+            <div>
+              <div class="item-title">Удвоение лапок <span class="lvl" id="dblLvl">ур. 0</span></div>
+              <p class="desc">Каждый тап приносит вдвое больше лапок.</p>
+              <p class="now" id="dblNow"></p>
+            </div>
+          </div>
+          <button class="buy" id="buyDbl" type="button"><svg><use href="#paw"/></svg><span id="dblCost">25</span></button>
+        </li>
+        <li class="item">
+          <div class="item-head">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M13.5 2 L5 13.5 H11 L10 22 L19 10 H12.8 Z" fill="currentColor"/></svg>
+            </div>
+            <div>
+              <div class="item-title">Скорость тапа <span class="lvl" id="spdLvl">ур. 0</span></div>
+              <p class="desc">Автокликер тапает быстрее: +1 тап в секунду за уровень.</p>
+              <p class="now" id="spdNow"></p>
+            </div>
+          </div>
+          <button class="buy" id="buySpd" type="button"><svg><use href="#paw"/></svg><span id="spdCost">50</span></button>
+        </li>
+      </ul>
+      <div class="reset-row"><button class="reset" id="reset" type="button">Сбросить лапки и улучшения</button></div>
+    </section>
+  </div>
+
+  <section class="vault" aria-labelledby="mgTitle">
+    <div class="vault-head">
+      <h2 id="mgTitle">Мини-игра: коты на деревьях</h2>
+    </div>
+    <p class="desc">Пять пухлых котов залезли на деревья в городе. Походи по улицам и найди их всех. За победу получишь кейс.</p>
+    <div class="open-row">
+      <button class="buy" id="mgPlay" type="button">Играть</button>
+      <p class="result" id="mgNote"></p>
+    </div>
+  </section>
+
+  <section class="vault" aria-labelledby="vaultTitle">
+    <div class="vault-head">
+      <h2 id="vaultTitle">Кейсы со скинами</h2>
+      <span class="chip">Кейсов: <b id="caseCount">0</b></span>
+    </div>
+    <div class="progress-row">
+      <div class="bar" id="caseBar" role="progressbar" aria-label="Тапы до следующего кейса" aria-valuemin="0" aria-valuemax="50" aria-valuenow="0"><div class="fill" id="caseFill"></div></div>
+      <span class="bar-text"><b id="caseProg">0</b> / 50 тапов до кейса</span>
+    </div>
+    <div class="roulette" id="roulette"><div class="strip" id="strip"></div><div class="marker" aria-hidden="true"></div></div>
+    <div class="open-row">
+      <button class="buy" id="openCase" type="button">Открыть кейс</button>
+      <p class="result" id="result" aria-live="polite">Каждые 50 тапов кот приносит кейс.</p>
+    </div>
+    <p class="odds" id="odds"></p>
+    <h3>Коллекция <span class="lvl" id="ownedCount"></span></h3>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+<div class="mg" id="mg" hidden>
+  <canvas id="mgCanvas"></canvas>
+  <div class="mg-hud">
+    <div>
+      <div class="mg-top">
+        <span class="mg-pill" aria-live="polite">Коты: <b id="mgFound">0</b> / 5</span>
+        <span class="mg-pill" id="mgTime">0:00</span>
+        <button class="ghost" id="mgExit" type="button">Выйти</button>
+      </div>
+    </div>
+    <p class="mg-help">Тап по земле: идти (или клавиши WASD). Тяни экран: вращать камеру. Увидел кота: тапни по нему. Включи звук: чем ближе кот, тем громче мяу.</p>
+  </div>
+  <div class="mg-win" id="mgWin" hidden>
+    <div class="mg-card">
+      <h2>Все коты найдены!</h2>
+      <p id="mgWinText"></p>
+      <div class="open-row">
+        <button class="buy" id="mgAgain" type="button">Играть снова</button>
+        <button class="ghost" id="mgClose" type="button">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="floats" id="floats" aria-hidden="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var AUTO_COST = 5000;
+  var DECAY = 0.003; // доля лапок, которую кот роняет каждую секунду
+  var CASE_EVERY = 50; // столько тапов нужно на один кейс
+  var KEY = "cat-clicker-v2";
+
+  var RAR = ["Обычный", "Необычный", "Редкий", "Супер редкий", "Самый редкий"];
+  // w: вес выпадения (в сумме 100, то есть вес равен проценту). У рыжего кота вес 0, он выдаётся сразу.
+  var SKINS = [
+    { id: "ginger", name: "Рыжий кот", r: 0, w: 0, fur: "#f29b4b", dark: "#c9712a", muzzle: "#fde7cf", ear: "#f2889f", nose: "#f2889f", eye: "#2a1b14", whisk: "#2a1b14" },
+    { id: "black", name: "Чёрный кот", r: 0, w: 40, fur: "#2d2f3a", dark: "#1b1c24", muzzle: "#4a4d5c", ear: "#8a5a6b", nose: "#e58aa0", eye: "#f2c94c", whisk: "#cfd3e0" },
+    { id: "lightblue", name: "Голубой кот", r: 1, w: 15, fur: "#8fd3f4", dark: "#5eb3dd", muzzle: "#e6f6ff", ear: "#ffb3c9", nose: "#f28aa5", eye: "#1f3b57", whisk: "#3a6a8a" },
+    { id: "blue", name: "Синий кот", r: 1, w: 15, fur: "#3f6fe0", dark: "#2b4fb0", muzzle: "#bcd0ff", ear: "#ff9fc0", nose: "#ff9fc0", eye: "#ffd84d", whisk: "#c9d8ff" },
+    { id: "pink", name: "Розовый кот", r: 1, w: 15, fur: "#f7a8c8", dark: "#e07aa3", muzzle: "#ffe3ee", ear: "#ff7fa6", nose: "#e0527f", eye: "#5a2140", whisk: "#8a3a5c" },
+    { id: "white", name: "Белый кот", r: 2, w: 10, fur: "#f4f5f8", dark: "#d5d9e4", muzzle: "#ffffff", ear: "#f6a6b8", nose: "#f2889f", eye: "#4b9be0", whisk: "#8a93a8" },
+    { id: "rainbow", name: "Радужный кот", r: 3, w: 4, rainbow: true, dark: "rgba(40,16,90,0.30)", muzzle: "#ffffff", ear: "#ffb3d1", nose: "#ff6fa0", eye: "#2b1e4d", whisk: "#3a2a66" },
+    { id: "pierced", name: "Кот с пирсингом", r: 4, w: 1, pierce: true, fur: "#8d93a6", dark: "#6a7084", muzzle: "#dfe3ee", ear: "#f2889f", nose: "#f2889f", eye: "#46d6a0", whisk: "#2c3144" }
+  ];
+  function skinById(id) {
+    for (var i = 0; i < SKINS.length; i++) if (SKINS[i].id === id) return SKINS[i];
+    return SKINS[0];
+  }
+
+  var state = { paws: 0, best: 0, dbl: 0, speed: 0, auto: false, sound: true, progress: 0, cases: 0, owned: { ginger: 1 }, skin: "ginger" };
+
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && typeof saved === "object") {
+      state.paws = +saved.paws || 0;
+      state.dbl = +saved.dbl || 0;
+      state.speed = +saved.speed || 0;
+      state.auto = !!saved.auto;
+      state.sound = saved.sound !== false;
+      state.best = +saved.best || 0;
+      state.progress = Math.max(0, +saved.progress || 0) % CASE_EVERY;
+      state.cases = Math.max(0, Math.floor(+saved.cases || 0));
+      if (saved.owned && typeof saved.owned === "object") {
+        SKINS.forEach(function (s) { var n = Math.floor(+saved.owned[s.id] || 0); if (n > 0) state.owned[s.id] = n; });
+      }
+      if (typeof saved.skin === "string" && state.owned[saved.skin]) state.skin = saved.skin;
+    }
+  } catch (e) {}
+
+  var dirty = false;
+  function save() {
+    if (!dirty) return;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); dirty = false; } catch (e) {}
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {
+    paws: $("paws"), decay: $("decay"), best: $("best"), per: $("per"), rate: $("rate"), cat: $("cat"), floats: $("floats"),
+    buyAuto: $("buyAuto"), buyDbl: $("buyDbl"), buySpd: $("buySpd"),
+    autoCost: $("autoCost"), dblCost: $("dblCost"), spdCost: $("spdCost"),
+    autoLvl: $("autoLvl"), dblLvl: $("dblLvl"), spdLvl: $("spdLvl"),
+    dblNow: $("dblNow"), spdNow: $("spdNow"), sound: $("sound"), reset: $("reset"),
+    caseCount: $("caseCount"), caseBar: $("caseBar"), caseFill: $("caseFill"), caseProg: $("caseProg"),
+    roulette: $("roulette"), strip: $("strip"), openCase: $("openCase"), result: $("result"),
+    odds: $("odds"), grid: $("grid"), ownedCount: $("ownedCount"), toast: $("toast")
+  };
+
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Хардкор: цена растёт в разы с каждым уровнем.
+  function dblCost(level) { return 25 * Math.pow(4, level); }
+  function spdCost(level) { return 50 * Math.pow(5, level); }
+  function perTap() { return Math.pow(2, state.dbl); }
+  function rate() { return state.auto ? 1 + state.speed : 0; }
+
+  var SUFFIX = ["", "", " млн", " млрд", " трлн", " квадр."];
+  function fmt(n) {
+    n = Math.floor(n);
+    if (n < 1e6) return n.toLocaleString("ru-RU");
+    var tier = Math.min(Math.floor(Math.log10(n) / 3), SUFFIX.length - 1);
+    if (tier < 2) return n.toLocaleString("ru-RU");
+    var v = n / Math.pow(1000, tier);
+    return v.toLocaleString("ru-RU", { maximumFractionDigits: v < 10 ? 2 : 1 }) + SUFFIX[tier];
+  }
+  function fmtSmall(v) {
+    return v < 10 ? v.toLocaleString("ru-RU", { maximumFractionDigits: 1 }) : fmt(v);
+  }
+
+  function render() {
+    var have = Math.floor(state.paws);
+    if (state.paws > state.best) state.best = state.paws;
+    el.paws.textContent = fmt(state.paws);
+    el.decay.textContent = "−" + fmtSmall(state.paws * DECAY) + " в сек.";
+    el.best.textContent = fmt(state.best);
+    el.per.textContent = fmt(perTap());
+    el.rate.textContent = state.auto ? rate() + " в сек." : "выключен";
+
+    el.autoLvl.textContent = state.auto ? "куплен" : "не куплен";
+    el.autoCost.textContent = state.auto ? "Куплено" : fmt(AUTO_COST);
+    el.buyAuto.disabled = state.auto || have < AUTO_COST;
+
+    var dc = dblCost(state.dbl);
+    el.dblLvl.textContent = "ур. " + state.dbl;
+    el.dblNow.textContent = "Сейчас ×" + fmt(perTap()) + ", дальше ×" + fmt(perTap() * 2);
+    el.dblCost.textContent = fmt(dc);
+    el.buyDbl.disabled = have < dc;
+
+    var sc = spdCost(state.speed);
+    el.spdLvl.textContent = "ур. " + state.speed;
+    if (state.auto) {
+      el.spdNow.textContent = "Сейчас " + rate() + " тап/сек, дальше " + (rate() + 1);
+      el.spdCost.textContent = fmt(sc);
+      el.buySpd.disabled = have < sc;
+    } else {
+      el.spdNow.textContent = "Сначала купи автокликер";
+      el.spdCost.textContent = fmt(sc);
+      el.buySpd.disabled = true;
+    }
+  }
+
+  // ---------- Рисунок кота ----------
+  var uidN = 0;
+  function catSvg(sk, thumb) {
+    var gid = "rg" + (++uidN);
+    var fur = sk.rainbow ? "url(#" + gid + ")" : sk.fur;
+    var defs = sk.rainbow
+      ? '<defs><linearGradient id="' + gid + '" gradientUnits="userSpaceOnUse" x1="30" y1="30" x2="270" y2="240">' +
+        '<stop offset="0" stop-color="#ff4d4d"/><stop offset="0.2" stop-color="#ff9f3d"/><stop offset="0.4" stop-color="#ffe14d"/>' +
+        '<stop offset="0.6" stop-color="#4dd66a"/><stop offset="0.8" stop-color="#4d9bff"/><stop offset="1" stop-color="#b24dff"/>' +
+        '</linearGradient></defs>'
+      : "";
+    var pierce = sk.pierce
+      ? '<circle cx="236" cy="58" r="4" fill="#e8ecf5" stroke="#8b93a8" stroke-width="1.5"/>' +
+        '<circle cx="228" cy="74" r="3.2" fill="#e8ecf5" stroke="#8b93a8" stroke-width="1.5"/>' +
+        '<circle cx="150" cy="187" r="7.5" fill="none" stroke="#5c6378" stroke-width="5.5"/>' +
+        '<circle cx="150" cy="187" r="7.5" fill="none" stroke="#eef1f8" stroke-width="3"/>'
+      : "";
+    var vb = thumb ? "20 10 260 250" : "0 0 300 280";
+    return '<svg viewBox="' + vb + '" role="img" aria-hidden="true">' + defs +
+      '<polygon points="52,118 66,22 138,72" fill="' + fur + '"/>' +
+      '<polygon points="248,118 234,22 162,72" fill="' + fur + '"/>' +
+      '<polygon points="68,100 75,50 112,78" fill="' + sk.ear + '"/>' +
+      '<polygon points="232,100 225,50 188,78" fill="' + sk.ear + '"/>' +
+      '<ellipse cx="150" cy="152" rx="112" ry="96" fill="' + fur + '"/>' +
+      '<path d="M150 62 L150 92 M128 66 L134 92 M172 66 L166 92" stroke="' + sk.dark + '" stroke-width="9" stroke-linecap="round" fill="none"/>' +
+      '<path d="M40 140 L68 146 M38 168 L66 166 M260 140 L232 146 M262 168 L234 166" stroke="' + sk.dark + '" stroke-width="9" stroke-linecap="round" fill="none"/>' +
+      '<ellipse cx="150" cy="190" rx="52" ry="36" fill="' + sk.muzzle + '"/>' +
+      '<g class="eyes-open">' +
+        '<ellipse cx="106" cy="148" rx="15" ry="20" fill="' + sk.eye + '"/>' +
+        '<ellipse cx="194" cy="148" rx="15" ry="20" fill="' + sk.eye + '"/>' +
+        '<ellipse cx="106" cy="148" rx="5" ry="15" fill="#0d0d12"/>' +
+        '<ellipse cx="194" cy="148" rx="5" ry="15" fill="#0d0d12"/>' +
+        '<circle cx="112" cy="140" r="5" fill="#fff"/><circle cx="200" cy="140" r="5" fill="#fff"/>' +
+      '</g>' +
+      '<g class="eyes-happy">' +
+        '<path d="M90 154 Q106 134 122 154" stroke="' + sk.whisk + '" stroke-width="7" stroke-linecap="round" fill="none"/>' +
+        '<path d="M178 154 Q194 134 210 154" stroke="' + sk.whisk + '" stroke-width="7" stroke-linecap="round" fill="none"/>' +
+      '</g>' +
+      '<path d="M138 172 Q150 166 162 172 Q150 188 138 172 Z" fill="' + sk.nose + '"/>' +
+      '<g class="mouth-closed"><path d="M150 184 Q142 200 128 194 M150 184 Q158 200 172 194" stroke="' + sk.whisk + '" stroke-width="5" stroke-linecap="round" fill="none"/></g>' +
+      '<g class="mouth-open"><path d="M134 188 Q150 186 166 188 Q164 220 150 220 Q136 220 134 188 Z" fill="#2a1b14"/><ellipse cx="150" cy="212" rx="9" ry="6" fill="#f2889f"/></g>' +
+      '<path d="M82 184 L30 174 M82 196 L32 206 M218 184 L270 174 M218 196 L268 206" stroke="' + sk.whisk + '" stroke-width="3" stroke-linecap="round" opacity="0.6" fill="none"/>' +
+      pierce +
+      '</svg>';
+  }
+  function renderCat() { el.cat.innerHTML = catSvg(skinById(state.skin), false); }
+
+  // ---------- Мяу ----------
+  var ctx = null, lastMeow = 0;
+  function meow(vol) {
+    var v = vol == null ? 1 : vol;
+    if (!state.sound || v <= 0.02) return;
+    var now = performance.now();
+    if (now - lastMeow < 90) return;
+    lastMeow = now;
+    try {
+      if (!ctx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ctx = new AC();
+      }
+      if (ctx.state === "suspended") ctx.resume();
+      var t = ctx.currentTime;
+      var base = 330 + Math.random() * 120;
+      var osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(base, t);
+      osc.frequency.linearRampToValueAtTime(base * 1.9, t + 0.13);
+      osc.frequency.exponentialRampToValueAtTime(base * 0.75, t + 0.42);
+      var filt = ctx.createBiquadFilter();
+      filt.type = "bandpass";
+      filt.Q.value = 3.5;
+      filt.frequency.setValueAtTime(800, t);
+      filt.frequency.linearRampToValueAtTime(2300, t + 0.14);
+      filt.frequency.linearRampToValueAtTime(1000, t + 0.42);
+      var gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.35 * v, t + 0.05);
+      gain.gain.setValueAtTime(0.3 * v, t + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      osc.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.5);
+    } catch (e) {}
+  }
+
+  var meowTimer = 0;
+  function squish() {
+    el.cat.classList.add("meowing");
+    clearTimeout(meowTimer);
+    meowTimer = setTimeout(function () { el.cat.classList.remove("meowing"); }, 240);
+    if (!reduce && el.cat.animate) {
+      el.cat.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(0.93, 1.05)" }, { transform: "scale(1)" }],
+        { duration: 150, easing: "ease-out" }
+      );
+    }
+  }
+
+  function floatAt(x, y, text) {
+    var s = document.createElement("span");
+    s.className = "float";
+    s.textContent = text;
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+    el.floats.appendChild(s);
+    if (s.animate) {
+      var move = reduce ? "translate(-50%, -50%)" : "translate(-50%, -140%)";
+      var a = s.animate(
+        [{ opacity: 1, transform: "translate(-50%, -50%)" }, { opacity: 0, transform: move }],
+        { duration: reduce ? 400 : 800, easing: "ease-out" }
+      );
+      a.onfinish = function () { s.remove(); };
+    } else {
+      setTimeout(function () { s.remove(); }, 800);
+    }
+  }
+  function catCenter() {
+    var r = el.cat.getBoundingClientRect();
+    return { x: r.left + r.width / 2 + (Math.random() - 0.5) * r.width * 0.5, y: r.top + r.height * 0.3 };
+  }
+
+  var toastTimer = 0;
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.toast.hidden = true; }, 2400);
+  }
+
+  // ---------- Кейсы ----------
+  function pick() {
+    var total = 0, i;
+    for (i = 0; i < SKINS.length; i++) total += SKINS[i].w;
+    var x = Math.random() * total;
+    for (i = 0; i < SKINS.length; i++) {
+      if (SKINS[i].w <= 0) continue;
+      x -= SKINS[i].w;
+      if (x < 0) return SKINS[i];
+    }
+    return SKINS[1];
+  }
+
+  function updateCaseUI() {
+    el.caseCount.textContent = state.cases;
+    el.caseProg.textContent = state.progress;
+    el.caseBar.setAttribute("aria-valuenow", state.progress);
+    el.caseFill.style.width = (state.progress / CASE_EVERY * 100) + "%";
+    el.openCase.disabled = spinning || state.cases < 1;
+    el.openCase.textContent = state.cases > 0 ? "Открыть кейс (" + state.cases + ")" : "Открыть кейс";
+  }
+
+  function addTaps(n) {
+    state.progress += n;
+    var got = Math.floor(state.progress / CASE_EVERY);
+    if (got > 0) {
+      state.progress -= got * CASE_EVERY;
+      state.cases += got;
+      toast(got > 1 ? "Новых кейсов: " + got + ". Открой их ниже." : "Новый кейс! Открой его ниже.");
+    }
+    dirty = true;
+    updateCaseUI();
+  }
+
+  function tileHtml(sk, extra) {
+    return '<div class="tile r-' + sk.r + '"><div class="thumb">' + catSvg(sk, true) + '</div><div>' + sk.name + '</div></div>';
+  }
+
+  var WIN_INDEX = 36, STRIP_LEN = 44;
+  function buildStrip(win) {
+    var html = "";
+    for (var i = 0; i < STRIP_LEN; i++) html += tileHtml(i === WIN_INDEX ? win : pick());
+    el.strip.innerHTML = html;
+  }
+
+  var spinning = false;
+  function openCase() {
+    if (spinning || state.cases < 1) return;
+    state.cases -= 1;
+    spinning = true;
+    dirty = true;
+    var win = pick();
+    buildStrip(win);
+    var tile = el.strip.children[WIN_INDEX];
+    var jitter = (Math.random() - 0.5) * tile.offsetWidth * 0.6;
+    var target = tile.offsetLeft + tile.offsetWidth / 2 - el.roulette.clientWidth / 2 + jitter;
+    el.strip.style.transition = "none";
+    el.strip.style.transform = "translateX(0)";
+    void el.strip.offsetWidth;
+    el.strip.style.transition = reduce ? "none" : "transform 4.2s cubic-bezier(0.1, 0.75, 0.12, 1)";
+    el.strip.style.transform = "translateX(" + (-target) + "px)";
+    el.result.textContent = "Открываем…";
+    updateCaseUI();
+    setTimeout(function () { finishOpen(win, tile); }, reduce ? 200 : 4300);
+  }
+
+  function finishOpen(win, tile) {
+    spinning = false;
+    tile.classList.add("win");
+    var had = state.owned[win.id] || 0;
+    state.owned[win.id] = had + 1;
+    var msg = "Выпало: «" + win.name + "» (" + RAR[win.r].toLowerCase() + "). ";
+    if (had === 0) {
+      state.skin = win.id;
+      renderCat();
+      msg += "Новый скин, уже надет.";
+    } else {
+      msg += "Дубликат, таких у тебя " + (had + 1) + ".";
+    }
+    el.result.textContent = msg;
+    dirty = true;
+    meow();
+    squish();
+    renderGrid();
+    updateCaseUI();
+    save();
+  }
+
+  function renderGrid() {
+    var html = "", have = 0;
+    SKINS.forEach(function (sk) {
+      var n = state.owned[sk.id] || 0;
+      var owned = n > 0;
+      if (owned) have++;
+      var on = owned && state.skin === sk.id;
+      var meta = RAR[sk.r];
+      if (on) meta += " · надет";
+      else if (n > 1) meta += " · ×" + n;
+      html += '<button type="button" class="tile gtile r-' + sk.r + (owned ? "" : " locked") + (on ? " on" : "") + '" data-id="' + sk.id + '"' +
+        (owned ? ' aria-pressed="' + (on ? "true" : "false") + '"' : " disabled") + '>' +
+        '<div class="thumb">' + catSvg(sk, true) + '</div>' +
+        '<div>' + (owned ? sk.name : "???") + '</div>' +
+        '<div class="tmeta">' + meta + '</div></button>';
+    });
+    el.grid.innerHTML = html;
+    el.ownedCount.textContent = have + " из " + SKINS.length;
+  }
+  el.grid.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-id]");
+    if (!b || b.disabled) return;
+    var id = b.getAttribute("data-id");
+    if (!state.owned[id] || state.skin === id) return;
+    state.skin = id;
+    dirty = true;
+    renderCat();
+    renderGrid();
+    save();
+  });
+  el.openCase.addEventListener("click", openCase);
+
+  function oddsText() {
+    var by = {};
+    SKINS.forEach(function (s) { if (s.w > 0) by[s.r] = (by[s.r] || 0) + s.w; });
+    return "Шансы: " + Object.keys(by).map(function (r) { return RAR[r] + " " + by[r] + "%"; }).join(" · ") + ".";
+  }
+
+  // ---------- Тапы и покупки ----------
+  el.cat.addEventListener("click", function (e) {
+    var gain = perTap();
+    state.paws += gain;
+    dirty = true;
+    meow();
+    squish();
+    var x = e.clientX, y = e.clientY;
+    if (!e.detail || (!x && !y)) { var c = catCenter(); x = c.x; y = c.y; }
+    floatAt(x, y, "+" + fmt(gain));
+    addTaps(1);
+    render();
+  });
+
+  el.buyAuto.addEventListener("click", function () {
+    if (state.auto || state.paws < AUTO_COST) return;
+    state.paws -= AUTO_COST; state.auto = true; dirty = true; render(); save();
+  });
+  el.buyDbl.addEventListener("click", function () {
+    var c = dblCost(state.dbl);
+    if (state.paws < c) return;
+    state.paws -= c; state.dbl += 1; dirty = true; render(); save();
+  });
+  el.buySpd.addEventListener("click", function () {
+    var c = spdCost(state.speed);
+    if (!state.auto || state.paws < c) return;
+    state.paws -= c; state.speed += 1; dirty = true; render(); save();
+  });
+
+  function syncSound() {
+    el.sound.textContent = state.sound ? "Звук: вкл" : "Звук: выкл";
+    el.sound.setAttribute("aria-pressed", state.sound ? "true" : "false");
+  }
+  el.sound.addEventListener("click", function () {
+    state.sound = !state.sound; dirty = true; syncSound(); save();
+  });
+
+  // Сброс трогает только лапки и улучшения. Скины и кейсы остаются.
+  var armed = false, armTimer = 0;
+  el.reset.addEventListener("click", function () {
+    if (!armed) {
+      armed = true;
+      el.reset.textContent = "Точно сбросить? Нажми ещё раз";
+      el.reset.classList.add("armed");
+      armTimer = setTimeout(disarm, 3500);
+      return;
+    }
+    disarm();
+    state.paws = 0; state.best = 0; state.dbl = 0; state.speed = 0; state.auto = false;
+    dirty = true; acc = 0; render(); save();
+  });
+  function disarm() {
+    armed = false; clearTimeout(armTimer);
+    el.reset.textContent = "Сбросить лапки и улучшения";
+    el.reset.classList.remove("armed");
+  }
+
+  // Автокликер и потеря лапок. Мяукаем не чаще раза в 90 мс.
+  var acc = 0, last = performance.now();
+  setInterval(function () {
+    var now = performance.now();
+    var dt = Math.min((now - last) / 1000, 1);
+    last = now;
+    var before = state.paws;
+    state.paws *= Math.pow(1 - DECAY, dt);
+    if (state.paws < 0.01) state.paws = 0;
+    if (state.paws !== before) { dirty = true; render(); }
+    if (!state.auto) return;
+    acc += dt * rate();
+    var n = Math.floor(acc);
+    if (n < 1) return;
+    acc -= n;
+    var gain = n * perTap();
+    state.paws += gain;
+    dirty = true;
+    meow();
+    squish();
+    var c = catCenter();
+    floatAt(c.x, c.y, "+" + fmt(gain));
+    addTaps(n);
+    render();
+  }, 100);
+
+  // Связь с мини-игрой: награда кейсом и мяу с заданной громкостью.
+  window.__catHooks = {
+    giveCase: function (n) {
+      state.cases += n; dirty = true; updateCaseUI();
+      toast("Награда за мини-игру: кейс!");
+      save();
+    },
+    meow: function (v) { meow(v); }
+  };
+
+  setInterval(save, 2000);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) save(); });
+
+  // Старт: в рулетке лежат случайные скины, чтобы она не выглядела пустой.
+  (function () {
+    var html = "";
+    for (var i = 0; i < 20; i++) html += tileHtml(pick());
+    el.strip.innerHTML = html;
+  })();
+  el.odds.textContent = oddsText();
+  syncSound();
+  renderCat();
+  renderGrid();
+  updateCaseUI();
+  render();
+})();
+</script>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var overlay = $("mg"), canvas = $("mgCanvas"), playBtn = $("mgPlay"), note = $("mgNote");
+  var foundEl = $("mgFound"), timeEl = $("mgTime"), winEl = $("mgWin"), winText = $("mgWinText");
+  var TOTAL = 5, G = null, running = false, raf = 0, lastT = 0, bestTime = 0;
+
+  function hooks() { return window.__catHooks || {}; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function fmtTime(s) { s = Math.floor(s); var r = s % 60; return Math.floor(s / 60) + ":" + (r < 10 ? "0" : "") + r; }
+
+  function start() {
+    if (!window.THREE) { note.textContent = "Не удалось загрузить 3D-движок. Проверь интернет и обнови страницу."; return; }
+    if (!G) {
+      try { G = build(); }
+      catch (e) { G = null; note.textContent = "Браузер не смог запустить 3D."; return; }
+    }
+    note.textContent = "";
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+    G.resize();
+    G.newRound();
+    running = true;
+    lastT = performance.now();
+    loop();
+  }
+  function stop() {
+    running = false;
+    cancelAnimationFrame(raf);
+    overlay.hidden = true;
+    winEl.hidden = true;
+    document.body.style.overflow = "";
+  }
+  function loop() {
+    if (!running) return;
+    raf = requestAnimationFrame(loop);
+    var now = performance.now();
+    var dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+    G.frame(dt);
+  }
+  function finish(sec) {
+    var h = hooks();
+    if (h.giveCase) h.giveCase(1);
+    if (!bestTime || sec < bestTime) bestTime = sec;
+    winText.textContent = "Твоё время: " + fmtTime(sec) + ". Награда: один кейс в кликере.";
+    note.textContent = "Лучшее время за сессию: " + fmtTime(bestTime) + ".";
+    winEl.hidden = false;
+  }
+
+  playBtn.addEventListener("click", start);
+  $("mgExit").addEventListener("click", stop);
+  $("mgClose").addEventListener("click", stop);
+  $("mgAgain").addEventListener("click", function () { winEl.hidden = true; G.newRound(); });
+  window.addEventListener("resize", function () { if (running && G) G.resize(); });
+
+  function build() {
+    var T = THREE;
+    var renderer = new T.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    var scene = new T.Scene();
+    var SKY = 0xa9defa, INK = 0x1b1b2f;
+    scene.background = new T.Color(SKY);
+    scene.fog = new T.Fog(SKY, 80, 190);
+    var camera = new T.PerspectiveCamera(55, 1, 0.5, 400);
+    scene.add(new T.HemisphereLight(0xffffff, 0x9aa8c0, 0.6));
+    var sun = new T.DirectionalLight(0xffffff, 0.7);
+    sun.position.set(-30, 60, 25);
+    scene.add(sun);
+
+    // Мультяшная заливка: четыре ступени света вместо плавного градиента.
+    var grad = (function () {
+      var d = new Uint8Array([95, 150, 210, 255]);
+      var tx = new T.DataTexture(d, 4, 1, T.LuminanceFormat);
+      tx.minFilter = T.NearestFilter; tx.magFilter = T.NearestFilter; tx.generateMipmaps = false; tx.needsUpdate = true;
+      return tx;
+    })();
+    var matCache = {};
+    function toon(color) {
+      if (!matCache[color]) matCache[color] = new T.MeshToonMaterial({ color: color, gradientMap: grad });
+      return matCache[color];
+    }
+    // Мультяшная обводка: тёмная копия формы чуть больше оригинала, видна только с обратной стороны.
+    var outlineMat = new T.MeshBasicMaterial({ color: INK, side: T.BackSide });
+    function outline(mesh, t) {
+      var g = mesh.geometry;
+      if (!g.boundingBox) g.computeBoundingBox();
+      var s = new T.Vector3();
+      g.boundingBox.getSize(s);
+      var o = new T.Mesh(g, outlineMat);
+      o.scale.set(
+        1 + 2 * t / Math.max(s.x * mesh.scale.x, 0.05),
+        1 + 2 * t / Math.max(s.y * mesh.scale.y, 0.05),
+        1 + 2 * t / Math.max(s.z * mesh.scale.z, 0.05));
+      o.raycast = function () {};
+      mesh.add(o);
+    }
+    function mk(geo, color, t, x, y, z, sx, sy, sz) {
+      var m = new T.Mesh(geo, toon(color));
+      m.position.set(x || 0, y || 0, z || 0);
+      if (sx) m.scale.set(sx, sy, sz);
+      if (t) outline(m, t);
+      return m;
+    }
+
+    var HALF = 60, P = 36, SPEED = 9;
+    var roadsC = [-54, -18, 18, 54];
+    var START = { x: 0, z: 18 };
+    var boxes = [], circles = [], sites = [];
+
+    // Земля и дороги
+    var ground = new T.Mesh(new T.PlaneGeometry(260, 260), toon(0x8fd36b));
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+    roadsC.forEach(function (rc) {
+      var rz = new T.Mesh(new T.PlaneGeometry(10, 124), toon(0x4a4f5e));
+      rz.rotation.x = -Math.PI / 2; rz.position.set(rc, 0.02, 0); scene.add(rz);
+      var rx = new T.Mesh(new T.PlaneGeometry(124, 10), toon(0x4a4f5e));
+      rx.rotation.x = -Math.PI / 2; rx.position.set(0, 0.03, rc); scene.add(rx);
+    });
+    var dashList = [];
+    roadsC.forEach(function (rc) {
+      for (var d = -58; d <= 58; d += 5) {
+        var nearCross = roadsC.some(function (o) { return Math.abs(d - o) < 7; });
+        if (nearCross) continue;
+        dashList.push([rc, d, 0]);
+        dashList.push([d, rc, 1]);
+      }
+    });
+    var dashes = new T.InstancedMesh(new T.BoxGeometry(0.5, 0.03, 2.4), new T.MeshBasicMaterial({ color: 0xf6f3e4 }), dashList.length);
+    var dm = new T.Object3D();
+    dashList.forEach(function (it, n) {
+      dm.position.set(it[0], 0.06, it[1]);
+      dm.rotation.y = it[2] ? Math.PI / 2 : 0;
+      dm.updateMatrix();
+      dashes.setMatrixAt(n, dm.matrix);
+    });
+    dashes.frustumCulled = false;
+    scene.add(dashes);
+
+    // Дома с окнами
+    var PALETTE = [0xff9aa2, 0xffd29a, 0xfff1a0, 0xa8e6cf, 0x9ad0ff, 0xc3a6ff, 0xffb3de, 0xf6e0b5];
+    var texCache = {};
+    function css(n) { return "#" + ("000000" + n.toString(16)).slice(-6); }
+    function facade(n) {
+      var c = document.createElement("canvas");
+      c.width = 64; c.height = 128;
+      var g = c.getContext("2d");
+      g.fillStyle = css(n); g.fillRect(0, 0, 64, 128);
+      g.fillStyle = "#d4f1ff"; g.strokeStyle = "#1b1b2f"; g.lineWidth = 3;
+      for (var r = 0; r < 4; r++) {
+        for (var q = 0; q < 2; q++) {
+          var x = 8 + q * 30, y = 10 + r * 30;
+          g.fillRect(x, y, 20, 20); g.strokeRect(x, y, 20, 20);
+        }
+      }
+      var tx = new T.CanvasTexture(c);
+      tx.wrapS = tx.wrapT = T.RepeatWrapping;
+      return tx;
+    }
+    function building(x, z, w, d, h, n) {
+      if (!texCache[n]) texCache[n] = facade(n);
+      var tx = texCache[n].clone();
+      tx.needsUpdate = true;
+      tx.repeat.set(Math.max(1, Math.round((w + d) / 12)), Math.max(1, Math.round(h / 12)));
+      var side = new T.MeshToonMaterial({ map: tx, gradientMap: grad });
+      var roof = toon(new T.Color(n).multiplyScalar(0.8).getHex());
+      var m = new T.Mesh(new T.BoxGeometry(w, h, d), [side, side, roof, roof, side, side]);
+      m.position.set(x, 0.2 + h / 2, z);
+      outline(m, 0.25);
+      scene.add(m);
+      boxes.push({ x: x, z: z, hw: w / 2, hd: d / 2, h: h + 0.2 });
+    }
+
+    var LOTS = [[-4.8, -4.8], [4.8, -4.8], [-4.8, 4.8], [4.8, 4.8]];
+    var PARK_TREES = [[-8, -7], [8, -7], [-8, 7], [8, 7], [0, -9.5], [0, 9.5], [-9.5, 0], [9.5, 0]];
+    for (var i = -1; i <= 1; i++) {
+      for (var j = -1; j <= 1; j++) {
+        var cx = i * P, cz = j * P, park = (i === 0 && j === 0);
+        var base = new T.Mesh(new T.BoxGeometry(26, 0.2, 26), toon(park ? 0x79cf57 : 0xc9cdd6));
+        base.position.set(cx, 0.1, cz);
+        scene.add(base);
+        [-6, 6].forEach(function (t) {
+          sites.push({ x: cx + t, z: cz + 11 }, { x: cx + t, z: cz - 11 }, { x: cx + 11, z: cz + t }, { x: cx - 11, z: cz + t });
+        });
+        if (park) {
+          scene.add(mk(new T.CylinderGeometry(4.5, 4.5, 0.12, 28), 0x6ec6ff, 0.12, cx, 0.26, cz));
+          circles.push({ x: cx, z: cz, r: 4.9 });
+          PARK_TREES.forEach(function (q) { sites.push({ x: cx + q[0], z: cz + q[1] }); });
+        } else {
+          LOTS.forEach(function (lot) {
+            if (Math.random() < 0.15) return;
+            var w = 6 + Math.random() * 2.4, d = 6 + Math.random() * 2.4, h = 8 + Math.random() * 16;
+            building(cx + lot[0], cz + lot[1], w, d, h, PALETTE[(Math.random() * PALETTE.length) | 0]);
+          });
+        }
+      }
+    }
+
+    // Деревья одним пакетом (instancing): ствол и пять шаров листвы плюс верхушка.
+    var NT = sites.length;
+    var trunkM = new T.InstancedMesh(new T.CylinderGeometry(0.35, 0.5, 4, 8), toon(0x8a5a3c), NT);
+    var trunkO = new T.InstancedMesh(new T.CylinderGeometry(0.46, 0.62, 4.25, 8), outlineMat, NT);
+    var crownGeo = new T.SphereGeometry(1, 14, 10), crownOutGeo = new T.SphereGeometry(1.09, 14, 10);
+    var crownA = new T.InstancedMesh(crownGeo, toon(0x4fbf5a), NT * 5);
+    var crownAO = new T.InstancedMesh(crownOutGeo, outlineMat, NT * 5);
+    var crownB = new T.InstancedMesh(crownGeo, toon(0x73d56b), NT);
+    var crownBO = new T.InstancedMesh(crownOutGeo, outlineMat, NT);
+    var dum = new T.Object3D();
+    sites.forEach(function (s, n) {
+      var sc = 0.9 + Math.random() * 0.35;
+      s.sc = sc; s.yaw = Math.random() * Math.PI * 2;
+      dum.rotation.set(0, 0, 0);
+      dum.position.set(s.x, 0.2 + 2 * sc, s.z); dum.scale.set(sc, sc, sc); dum.updateMatrix();
+      trunkM.setMatrixAt(n, dum.matrix); trunkO.setMatrixAt(n, dum.matrix);
+      for (var k = 0; k < 5; k++) {
+        var a = s.yaw + k * Math.PI * 2 / 5;
+        dum.position.set(s.x + Math.cos(a) * 1.45 * sc, 0.2 + 4.5 * sc, s.z + Math.sin(a) * 1.45 * sc);
+        dum.scale.set(1.55 * sc, 1.55 * sc, 1.55 * sc); dum.updateMatrix();
+        crownA.setMatrixAt(n * 5 + k, dum.matrix); crownAO.setMatrixAt(n * 5 + k, dum.matrix);
+      }
+      dum.position.set(s.x, 0.2 + 5.6 * sc, s.z); dum.scale.set(1.8 * sc, 1.8 * sc, 1.8 * sc); dum.updateMatrix();
+      crownB.setMatrixAt(n, dum.matrix); crownBO.setMatrixAt(n, dum.matrix);
+      circles.push({ x: s.x, z: s.z, r: 0.75 });
+    });
+    [trunkM, trunkO, crownA, crownAO, crownB, crownBO].forEach(function (m) { m.frustumCulled = false; scene.add(m); });
+
+    // Машины на обочинах
+    function car(x, z, alongZ, color) {
+      var g = new T.Group();
+      g.add(mk(new T.BoxGeometry(3.8, 0.9, 1.8), color, 0.08, 0, 0.75, 0));
+      g.add(mk(new T.BoxGeometry(2.0, 0.8, 1.6), 0xeaf6ff, 0.08, -0.2, 1.5, 0));
+      [[-1.2, 0.9], [1.2, 0.9], [-1.2, -0.9], [1.2, -0.9]].forEach(function (w) {
+        var wh = mk(new T.CylinderGeometry(0.4, 0.4, 0.3, 10), 0x2b2b3a, 0.05, w[0], 0.4, w[1]);
+        wh.rotation.x = Math.PI / 2;
+        g.add(wh);
+      });
+      g.position.set(x, 0.03, z);
+      g.rotation.y = alongZ ? Math.PI / 2 : 0;
+      scene.add(g);
+      boxes.push({ x: x, z: z, hw: alongZ ? 1 : 2, hd: alongZ ? 2 : 1, h: 2 });
+    }
+    var CAR_COLORS = [0xff5a5a, 0xffc93c, 0x4d7cff, 0x35c48b, 0xb06bff, 0xff8fb1];
+    for (var ci = 0; ci < 10; ci++) {
+      var rc = roadsC[(Math.random() * 4) | 0], along = Math.random() < 0.5;
+      var pos = (Math.random() - 0.5) * 100;
+      if (roadsC.some(function (o) { return Math.abs(pos - o) < 8; })) continue;
+      var lane = rc + (Math.random() < 0.5 ? -3 : 3);
+      if (along) car(lane, pos, true, CAR_COLORS[ci % CAR_COLORS.length]);
+      else car(pos, lane, false, CAR_COLORS[ci % CAR_COLORS.length]);
+    }
+
+    // Облака
+    for (var cl = 0; cl < 7; cl++) {
+      var cg = new T.Group();
+      for (var q = 0; q < 3; q++) {
+        var cs = new T.Mesh(new T.SphereGeometry(5 + Math.random() * 3, 10, 8), new T.MeshBasicMaterial({ color: 0xffffff, fog: false }));
+        cs.position.set(q * 7 - 7, Math.random() * 2, Math.random() * 3);
+        cg.add(cs);
+      }
+      cg.position.set((Math.random() - 0.5) * 240, 50 + Math.random() * 15, (Math.random() - 0.5) * 240);
+      scene.add(cg);
+    }
+
+    // Игрок
+    var player = new T.Group();
+    player.add(mk(new T.SphereGeometry(0.7, 14, 10), 0x4d7cff, 0.06, 0, 0.85, 0, 1, 1.1, 0.95));
+    player.add(mk(new T.SphereGeometry(0.5, 14, 10), 0xffd9b3, 0.05, 0, 1.95, 0));
+    player.add(mk(new T.SphereGeometry(0.53, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0xff5a5a, 0, 0, 2.05, 0));
+    [-0.17, 0.17].forEach(function (ex) { player.add(mk(new T.SphereGeometry(0.06, 8, 6), INK, 0, ex, 1.97, 0.44)); });
+    scene.add(player);
+
+    // Маркер цели
+    var marker = new T.Mesh(new T.RingGeometry(0.5, 0.75, 20), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, side: T.DoubleSide }));
+    marker.rotation.x = -Math.PI / 2; marker.visible = false;
+    scene.add(marker);
+    var markerLife = 0;
+
+    // Сердечко над найденным котом
+    var heartTex = (function () {
+      var c = document.createElement("canvas");
+      c.width = c.height = 64;
+      var g = c.getContext("2d");
+      g.fillStyle = "#ff5c8a"; g.strokeStyle = "#1b1b2f"; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(32, 54); g.bezierCurveTo(4, 34, 10, 8, 32, 20); g.bezierCurveTo(54, 8, 60, 34, 32, 54);
+      g.fill(); g.stroke();
+      return new T.CanvasTexture(c);
+    })();
+
+    // Пухлый кот
+    var CAT_COLORS = [0xf29b4b, 0x9aa3b5, 0xf5f5f5, 0x3a3b47, 0xf0d3a0];
+    var cats = [];
+    function makeCat(s, idx) {
+      var col = CAT_COLORS[idx % CAT_COLORS.length];
+      var g = new T.Group();
+      g.add(mk(new T.SphereGeometry(0.8, 16, 12), col, 0.07, 0, 0, 0, 1.05, 0.95, 1.1));
+      g.add(mk(new T.SphereGeometry(0.62, 16, 12), col, 0.06, 0, 0.82, 0.38, 1.1, 0.95, 1));
+      g.add(mk(new T.ConeGeometry(0.22, 0.42, 8), col, 0.04, -0.38, 1.38, 0.3));
+      g.add(mk(new T.ConeGeometry(0.22, 0.42, 8), col, 0.04, 0.38, 1.38, 0.3));
+      g.add(mk(new T.SphereGeometry(0.07, 8, 6), INK, 0, -0.26, 0.92, 0.9));
+      g.add(mk(new T.SphereGeometry(0.07, 8, 6), INK, 0, 0.26, 0.92, 0.9));
+      g.add(mk(new T.SphereGeometry(0.06, 8, 6), 0xf2889f, 0, 0, 0.8, 1.0));
+      var tail = mk(new T.CylinderGeometry(0.12, 0.17, 1.0, 8), col, 0.04, 0, 0.25, -0.95);
+      tail.rotation.x = -0.9;
+      g.add(tail);
+      g.add(mk(new T.SphereGeometry(0.22, 10, 8), 0xffffff, 0.03, -0.38, -0.5, 0.7));
+      g.add(mk(new T.SphereGeometry(0.22, 10, 8), 0xffffff, 0.03, 0.38, -0.5, 0.7));
+      var hit = new T.Mesh(new T.SphereGeometry(1.5, 8, 6), new T.MeshBasicMaterial({ visible: false }));
+      hit.position.set(0, 0.6, 0.2);
+      g.add(hit);
+      var heart = new T.Sprite(new T.SpriteMaterial({ map: heartTex, transparent: true, depthTest: false, fog: false }));
+      heart.scale.set(1.3, 1.3, 1);
+      heart.position.set(0, 2.3, 0);
+      heart.visible = false;
+      g.add(heart);
+      g.userData.cat = true;
+      var sc = s.sc, a = s.yaw + (Math.floor(Math.random() * 5) + 0.5) * Math.PI * 2 / 5;
+      g.position.set(s.x + Math.cos(a) * 2.35 * sc, 0.2 + 3.8 * sc, s.z + Math.sin(a) * 2.35 * sc);
+      g.rotation.y = Math.atan2(Math.cos(a), Math.sin(a));
+      g.scale.setScalar(0.9);
+      scene.add(g);
+      return { g: g, heart: heart, found: false, t: 0, baseY: g.position.y, phase: Math.random() * 6 };
+    }
+
+    // Состояние раунда
+    var yaw = 0.5, pitch = 0.5, dist = 16, walkT = 0, stuck = 0, proxT = 2;
+    var dest = null, foundN = 0, elapsed = 0, solved = false;
+    var camTarget = new T.Vector3(START.x, 2, START.z);
+    var ray = new T.Raycaster(), ndc = new T.Vector2();
+    var groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
+
+    function newRound() {
+      cats.forEach(function (c) { scene.remove(c.g); });
+      cats = [];
+      var chosen = [], tries = 0, s;
+      while (chosen.length < TOTAL && tries++ < 800) {
+        s = sites[(Math.random() * sites.length) | 0];
+        if (chosen.indexOf(s) >= 0) continue;
+        if (Math.hypot(s.x - START.x, s.z - START.z) < 20) continue;
+        var ok = chosen.every(function (c) { return Math.hypot(c.x - s.x, c.z - s.z) > 28; });
+        if (ok) chosen.push(s);
+      }
+      while (chosen.length < TOTAL) {
+        s = sites[(Math.random() * sites.length) | 0];
+        if (chosen.indexOf(s) < 0) chosen.push(s);
+      }
+      chosen.forEach(function (c, n) { cats.push(makeCat(c, n)); });
+      foundN = 0; foundEl.textContent = "0";
+      elapsed = 0; timeEl.textContent = "0:00"; solved = false;
+      player.position.set(START.x, 0, START.z);
+      dest = null; marker.visible = false;
+      yaw = 0.5; pitch = 0.5; dist = 16; proxT = 2;
+      camTarget.set(START.x, 2, START.z);
+    }
+
+    function foundCat(c) {
+      c.found = true; c.t = 0; c.heart.visible = true;
+      foundN += 1;
+      foundEl.textContent = String(foundN);
+      var h = hooks();
+      if (h.meow) h.meow(1);
+      if (foundN >= TOTAL) {
+        solved = true;
+        var t = elapsed;
+        setTimeout(function () { if (running) finish(t); }, 1100);
+      }
+    }
+
+    function pickAt(x, y) {
+      var rect = canvas.getBoundingClientRect();
+      ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      var live = cats.filter(function (c) { return !c.found; }).map(function (c) { return c.g; });
+      var hits = ray.intersectObjects(live, true);
+      if (hits.length) {
+        var o = hits[0].object;
+        while (o && !o.userData.cat) o = o.parent;
+        var cat = cats.filter(function (c) { return c.g === o; })[0];
+        if (cat) { foundCat(cat); return; }
+      }
+      var pt = new T.Vector3();
+      if (ray.ray.intersectPlane(groundPlane, pt)) {
+        dest = { x: clamp(pt.x, -HALF, HALF), z: clamp(pt.z, -HALF, HALF) };
+        marker.position.set(dest.x, 0.3, dest.z);
+        marker.visible = true; markerLife = 1;
+      }
+    }
+
+    // Управление: перетаскивание вращает камеру, короткий тап ведёт или ищет кота.
+    var ptrs = {}, nptr = 0, pinch0 = 0, dragMoved = false, downT = 0, downX = 0, downY = 0, keys = {};
+    function pinchDist() {
+      var ids = Object.keys(ptrs);
+      if (ids.length < 2) return 0;
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+    canvas.addEventListener("pointerdown", function (e) {
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      nptr = Object.keys(ptrs).length;
+      if (nptr === 1) { dragMoved = false; downT = performance.now(); downX = e.clientX; downY = e.clientY; }
+      if (nptr === 2) { pinch0 = pinchDist(); dragMoved = true; }
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      var p = ptrs[e.pointerId];
+      if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      if (nptr === 1) {
+        if (!dragMoved && Math.hypot(e.clientX - downX, e.clientY - downY) > 7) dragMoved = true;
+        if (dragMoved) { yaw -= dx * 0.006; pitch = clamp(pitch + dy * 0.005, 0.15, 1.25); }
+      } else if (nptr === 2) {
+        var d = pinchDist();
+        if (pinch0 && d) dist = clamp(dist * pinch0 / d, 6, 30);
+        pinch0 = d;
+      }
+    });
+    function endPtr(e) {
+      if (!ptrs[e.pointerId]) return;
+      delete ptrs[e.pointerId];
+      var was = nptr;
+      nptr = Object.keys(ptrs).length;
+      if (was === 1 && nptr === 0 && !dragMoved && e.type === "pointerup" && performance.now() - downT < 600) pickAt(e.clientX, e.clientY);
+      if (nptr === 0) dragMoved = false;
+    }
+    canvas.addEventListener("pointerup", endPtr);
+    canvas.addEventListener("pointercancel", endPtr);
+    canvas.addEventListener("wheel", function (e) { e.preventDefault(); dist = clamp(dist + e.deltaY * 0.01, 6, 30); }, { passive: false });
+    window.addEventListener("keydown", function (e) {
+      if (!running) return;
+      keys[e.code] = true;
+      if (e.code.indexOf("Arrow") === 0 || e.code === "Space") e.preventDefault();
+      if (e.code === "Escape") stop();
+    });
+    window.addEventListener("keyup", function (e) { keys[e.code] = false; });
+
+    function groundY(x, z) {
+      var bx = Math.round(x / P), bz = Math.round(z / P);
+      if (Math.abs(bx) <= 1 && Math.abs(bz) <= 1 && Math.abs(x - bx * P) < 13 && Math.abs(z - bz * P) < 13) return 0.2;
+      return 0;
+    }
+    function resolve(p, r) {
+      var n, b, c, dx, dz, d2, d;
+      for (n = 0; n < boxes.length; n++) {
+        b = boxes[n];
+        var qx = clamp(p.x, b.x - b.hw, b.x + b.hw), qz = clamp(p.z, b.z - b.hd, b.z + b.hd);
+        dx = p.x - qx; dz = p.z - qz; d2 = dx * dx + dz * dz;
+        if (d2 < r * r) {
+          if (d2 > 1e-6) { d = Math.sqrt(d2); p.x = qx + dx / d * r; p.z = qz + dz / d * r; }
+          else { p.x = b.x + (p.x >= b.x ? 1 : -1) * (b.hw + r); }
+        }
+      }
+      for (n = 0; n < circles.length; n++) {
+        c = circles[n];
+        dx = p.x - c.x; dz = p.z - c.z; d = Math.hypot(dx, dz);
+        if (d < c.r + r && d > 1e-6) { p.x = c.x + dx / d * (c.r + r); p.z = c.z + dz / d * (c.r + r); }
+      }
+    }
+    function camBlocked(x, y, z) {
+      for (var n = 0; n < boxes.length; n++) {
+        var b = boxes[n];
+        if (y < b.h + 0.5 && Math.abs(x - b.x) < b.hw + 0.6 && Math.abs(z - b.z) < b.hd + 0.6) return true;
+      }
+      return false;
+    }
+
+    function update(dt) {
+      var f = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0);
+      var r = ((keys.KeyD || keys.ArrowRight) ? 1 : 0) - ((keys.KeyA || keys.ArrowLeft) ? 1 : 0);
+      var dx = 0, dz = 0, moving = false, p = player.position;
+      if (f || r) {
+        dest = null;
+        dx = -Math.sin(yaw) * f + Math.cos(yaw) * r;
+        dz = -Math.cos(yaw) * f - Math.sin(yaw) * r;
+        moving = true;
+      } else if (dest) {
+        var ex = dest.x - p.x, ez = dest.z - p.z, ed = Math.hypot(ex, ez);
+        if (ed < 0.35) dest = null;
+        else { dx = ex / ed; dz = ez / ed; moving = true; }
+      }
+      if (moving) {
+        var l = Math.hypot(dx, dz) || 1;
+        dx /= l; dz /= l;
+        var ox = p.x, oz = p.z;
+        p.x += dx * SPEED * dt; p.z += dz * SPEED * dt;
+        resolve(p, 0.9);
+        p.x = clamp(p.x, -HALF, HALF); p.z = clamp(p.z, -HALF, HALF);
+        if (dest) {
+          if (Math.hypot(p.x - ox, p.z - oz) < SPEED * dt * 0.25) stuck += dt; else stuck = 0;
+          if (stuck > 0.4) { dest = null; stuck = 0; }
+        }
+        var tr = Math.atan2(dx, dz);
+        var diff = Math.atan2(Math.sin(tr - player.rotation.y), Math.cos(tr - player.rotation.y));
+        player.rotation.y += diff * Math.min(1, dt * 12);
+        walkT += dt * 12;
+      }
+      p.y = groundY(p.x, p.z) + (moving ? Math.abs(Math.sin(walkT)) * 0.14 : 0);
+
+      // Камера по кругу вокруг игрока
+      camTarget.lerp(new T.Vector3(p.x, p.y + 1.8, p.z), 1 - Math.pow(0.001, dt));
+      var cp = Math.cos(pitch), sp = Math.sin(pitch), dd = dist, cx, cy, cz;
+      for (var tries = 0; tries < 8; tries++) {
+        cx = camTarget.x + Math.sin(yaw) * cp * dd;
+        cy = camTarget.y + sp * dd;
+        cz = camTarget.z + Math.cos(yaw) * cp * dd;
+        if (!camBlocked(cx, cy, cz)) break;
+        dd *= 0.85;
+      }
+      camera.position.set(cx, cy, cz);
+      camera.lookAt(camTarget);
+
+      // Коты: дыхание и прыжок после находки
+      cats.forEach(function (c) {
+        if (c.found) {
+          c.t += dt;
+          c.g.position.y = c.baseY + Math.abs(Math.sin(c.t * 9)) * Math.max(0, 0.8 - c.t * 0.5);
+          c.heart.position.y = 2.3 + Math.sin(c.t * 4) * 0.15;
+        } else {
+          c.g.scale.y = 0.9 * (1 + 0.03 * Math.sin(performance.now() / 500 + c.phase));
+        }
+      });
+
+      if (marker.visible) {
+        markerLife -= dt;
+        marker.material.opacity = Math.max(0, markerLife);
+        marker.scale.setScalar(1 + (1 - markerLife) * 0.4);
+        if (markerLife <= 0) marker.visible = false;
+      }
+
+      // Подсказка звуком: чем ближе кот, тем громче мяу
+      proxT -= dt;
+      if (proxT <= 0 && !solved) {
+        proxT = 2.2 + Math.random() * 1.6;
+        var best = 1e9;
+        cats.forEach(function (c) {
+          if (c.found) return;
+          var d = Math.hypot(c.g.position.x - p.x, c.g.position.z - p.z);
+          if (d < best) best = d;
+        });
+        var h = hooks();
+        if (best < 28 && h.meow) h.meow(Math.max(0.12, 0.7 * (1 - best / 28)));
+      }
+
+      if (!solved) {
+        elapsed += dt;
+        timeEl.textContent = fmtTime(elapsed);
+      }
+    }
+
+    function resize() {
+      var w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    return {
+      newRound: newRound,
+      resize: resize,
+      frame: function (dt) { update(dt); renderer.render(scene, camera); }
+    };
+  }
+})();
+</script>
+
+</body></html>
